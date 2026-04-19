@@ -8,11 +8,11 @@
 
 #define BEACON_PORT 47272
 
-int presence(char *ip,int port_tcp,char *message)
+int presence(char *username,char *ip,int port_tcp,char *message)
 {
     char beacon[256];
-    snprintf(beacon,sizeof(beacon), "toole|%s|%d|%s",ip,port_tcp,message);
-    
+    snprintf(beacon,sizeof(beacon), "toole|%s|%s|%d|%s",username,ip,port_tcp,message);
+
     //Hello le BOP,sur cette section , je creer le socket qui retourne un nombre negatif si echec et  un nombre positif si succès
     int socket_udp;
     socket_udp=socket(AF_INET, SOCK_DGRAM,0);
@@ -21,7 +21,7 @@ int presence(char *ip,int port_tcp,char *message)
         perror("La creation du socket du socket a echoué");
         return -1;
     }
-    
+
 
     //la fonction setsockopt() de <sys/socket.h> sera utilisé pour preparer le broadcast , c'est elle qui definit le fonctionement du socket
     int enable= 1;
@@ -41,9 +41,18 @@ int presence(char *ip,int port_tcp,char *message)
     return 0;
 }
 
+int heart(){
+    puts("la prochaine etape");
+    
+    close(socket_udp);
+    return 0;
+}
+
 //Fonction principale
 int main(void)
 {
-    presence("192.168.100.1",47222,"auto");
+    while (1) {
+    presence("Gérard","192.168.100.1",47222,"auto");
+    }
     return 0;
 }
