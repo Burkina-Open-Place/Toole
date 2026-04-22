@@ -4,6 +4,8 @@
 #include <string.h>
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+#include <time.h>
 
 #pragma comment(lib,"Ws2_32.lib")//pour indiquer au compilateur d'ajouter la bib ws2_32.lib lors de la compilation
 #define PORT 47272
@@ -12,13 +14,20 @@
 
 // En gros ,cette fonction ci-dessous permet la 1=>de signaler sa presence sur le resau 2=>detecter la presence des autres pc.
 int presence(char *ip,int port_tcp,char *message); 
+
+//generer des id pour les pc.
+char * id_generertor();
 /*fonction main:l'entre du code | programe*/
 int main(void)
 {
     presence("172.16.17.140",PORT,"gosse");
+    char *name_pc = id_generertor();
+    printf("%s",name_pc);
+    free(name_pc);
     return 0;
 }
 
+/*Implementation des fonction */
 int presence(char *ip,int port_tcp,char *message){
 
     char beacon[256];
@@ -65,3 +74,35 @@ int presence(char *ip,int port_tcp,char *message){
     WSACleanup();
     return 0;
     }
+
+char * id_generertor(){
+    int nombre;
+    char chaine[10];
+    char computerName[MAX_COMPUTERNAME_LENGTH + 1];
+    DWORD size = sizeof(computerName);
+    char *namepc = malloc(MAX_COMPUTERNAME_LENGTH * sizeof(char));
+    if(namepc == NULL){
+        fprintf(stderr,"erreur de l'allocstion de namepc");
+        return "INCONNU";
+    }
+
+    //Avec cette fonction{GetComputerName} je recupere le nom de ta machine et avec {strcpy} je copie le nom de tas machine dans la variable computerName
+    if (GetComputerName(computerName,&size))
+    {
+        strcpy(namepc,computerName);
+        
+    }else {
+        printf("Erreur lors de la recuperation du nom (code : %lu)\n", GetLastError());
+        return "INCONNU";
+    }
+    srand(time(NULL));
+    nombre = rand() % 1001;//generation d'un nombre alleatoire pour faire l'id
+    sprintf(chaine, "%d", nombre);
+        // 1. Copier computerName dans namepc
+    strcpy(namepc, computerName);                
+    
+    // 2. Concaténer chaine à la suite de namepc
+    strcat(namepc, chaine);  
+    
+    return namepc;//je retourne l'id avec ce format {NOMPCNOMBRE} EX:DELL57665555 NB:5555 est le nombre generer et DELL5766 nom de la machine.
+}
