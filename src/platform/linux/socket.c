@@ -4,15 +4,16 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
+#include <unistd.h>
+#include <sys/time.h>
+#include <stdlib.h>
 #include <stdio.h>
 
 #define BEACON_PORT 47272
 
-int presence(char *ip,int port_tcp,char *message)
+int presence_socket()
 {
-    char beacon[256];
-    snprintf(beacon,sizeof(beacon), "toole|%s|%d|%s",ip,port_tcp,message);
-    
     //Hello le BOP,sur cette section , je creer le socket qui retourne un nombre negatif si echec et  un nombre positif si succès
     int socket_udp;
     socket_udp=socket(AF_INET, SOCK_DGRAM,0);
@@ -21,7 +22,7 @@ int presence(char *ip,int port_tcp,char *message)
         perror("La creation du socket du socket a echoué");
         return -1;
     }
-    
+
 
     //la fonction setsockopt() de <sys/socket.h> sera utilisé pour preparer le broadcast , c'est elle qui definit le fonctionement du socket
     int enable= 1;
@@ -30,6 +31,15 @@ int presence(char *ip,int port_tcp,char *message)
         perror("setsockopt a echoué");
         return -1;
     }
+    return socket_udp;
+}
+
+// Presence est la focntion qui emet les beacon
+int presence(int socket_udp,char *id,char *username,char *ip,int port_tcp,char *message)
+{
+    char beacon[256];
+    snprintf(beacon,sizeof(beacon), "toole|%s|%s|%s|%d|%s",id,username,ip,port_tcp,message);
+
     //Cette structure definit les adresse et port reseau pour entamer  l'emission de données en UDP
     struct sockaddr_in network_utils={
         .sin_family= AF_INET,
@@ -40,10 +50,114 @@ int presence(char *ip,int port_tcp,char *message)
     sendto(socket_udp,beacon,strlen(beacon),0,(struct sockaddr *)&network_utils,sizeof(network_utils));
     return 0;
 }
+//-------------------------------------------------------------------------
 
-//Fonction principale
+int hear_socket(){
+    //Hello le BOP ici je cree un socket UDP pour la fonction hear()
+    int socket_udp;
+    socket_udp = socket(AF_INET, SOCK_DGRAM, 0);
+    if (socket_udp<0){
+        perror("La creation du socket a echoué");
+    }
+    // creation de la stucture(support pour la transmision)
+    struct sockaddr_in network_utils=
+        {
+        .sin_addr.s_addr = INADDR_ANY,
+        .sin_family= AF_INET,
+        .sin_port= htons(BEACON_PORT)
+    };
+    //ici j'attache le socket à la structure en haut
+    if(bind (socket_udp, (struct sockaddr *) &network_utils, sizeof( network_utils))< 0)
+    {
+        perror("bind() a echoué");
+        close(socket_udp);
+        return -1;
+    }
+    return socket_udp;
+}
+
+typedef struct {
+    char id[37];
+    char username[64];
+    char ip[16];
+    int  port_tcp;
+    char message[128];
+    time_t last_time;
+} device;
+int nb=0;
+
+//Hello le BOP, cette focntion permet de suprimer les appareils s'ils n'envoie de beacon pendant 10 second
+void cleanner(device *liste){
+    time_t now=time(NULL);
+    for (int i = 0; i < nb; i++) {
+        if (difftime(now, liste[i].last_time) > 10) {
+            for (int j = i; j < nb - 1; j++) {
+                liste[j] = liste[j + 1];
+            }
+            nb--;
+            i--;
+    }
+    }
+}
+//hear ecoute les beacon sur le port d'emmision
+void hear(int socket_udp,device *liste)
+{
+    char buffer[256];
+        struct sockaddr_in sender_addr;
+        socklen_t size_of = sizeof(sender_addr);
+        ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&sender_addr, &size_of);
+
+        if (result > 0) {
+            buffer[result] = '\0';
+
+            //ici je filtre les beacons, pour ne laiser que les beacons avec la signature de toolé
+            if (strncmp(buffer, "toole", 5) == 0) {
+                device d;
+                // Je  parse les beacons recues pour le mettre  dans la structure device que j'ai creé
+                sscanf(buffer, "toole|%36[^|]|%63[^|]|%15[^|]|%d|%127[^\n]", d.id, d.username, d.ip, &d.port_tcp, d.message);
+                d.last_time=time(NULL);
+                /*là pour eviter les doublons de beacons, je verifie la liste, si l'id d'un nouveau becons est deja present dans la liste ,
+                 je le suprime et dans le cas contraire , je l'ajoute imediatement
+                    */
+                int index = -1;
+                for (int i = 0; i < nb; i++) {
+                    if (strcmp(liste[i].id, d.id) == 0) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index != -1) {
+                    liste[index] = d;
+                }
+                else if (nb < 100) {
+                    liste[nb] = d;
+                    nb++;
+                }
+            }
+        }
+    }
+
+
 int main(void)
 {
-    presence("192.168.100.1",47222,"auto");
+    // int sock=presence_socket();
+    // if (sock < 0) return 1;
+    // while (1) {
+    // presence(sock, "T-001", "Gerard", "192.168.100.1", 42422,"auto");
+    // sleep(5);
+    // }
+    // close(sock);
+    int sock = hear_socket();
+        if (sock < 0) return 1;
+    device *devices = malloc(100 * sizeof(device));
+    while (1) {
+        hear(sock, devices);
+        cleanner(devices);
+        for (int i = 0; i < nb; i++) {
+                    printf("[%d] %s | %s\n", i+1, devices[i].username, devices[i].ip);
+                }
+    }
+    free(devices);
+    close(sock);
     return 0;
 }
