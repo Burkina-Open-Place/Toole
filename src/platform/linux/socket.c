@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <time.h>
 #include <unistd.h>
 #include <sys/time.h>
 #include <stdlib.h>
@@ -70,7 +71,7 @@ int hear_socket(){
     {
         perror("bind() a echoué");
         close(socket_udp);
-        return NULL;
+        return -1;
     }
     return socket_udp;
 }
@@ -81,27 +82,43 @@ typedef struct {
     char ip[16];
     int  port_tcp;
     char message[128];
+    time_t last_time;
 } device;
 int nb=0;
+
+//Hello le BOP, cette focntion permet de suprimer les appareils s'ils n'envoie de beacon pendant 10 second
+
 //hear ecoute les beacon sur le port d'emmision
 void hear(int socket_udp,device *liste)
 {
     char buffer[256];
-    struct sockaddr_in sender_addr;
-    socklen_t size_of = sizeof(sender_addr);
-    ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&sender_addr, &size_of);
-
-    if (result > 0) {
-        buffer[result] = '\0';
-
-        if (strncmp(buffer, "toole", 5) == 0) {
-            device d;
-            sscanf(buffer, "toole|%36[^|]|%63[^|]|%15[^|]|%d|%127[^\n]", d.id, d.username, d.ip, &d.port_tcp, d.message);
-            liste[nb] = d;
-            nb++;
+        struct sockaddr_in sender_addr;
+        socklen_t size_of = sizeof(sender_addr);
+        ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&sender_addr, &size_of);
+    
+        if (result > 0) {
+            buffer[result] = '\0';
+    
+            if (strncmp(buffer, "toole", 5) == 0) {
+                device d;
+                sscanf(buffer, "toole|%36[^|]|%63[^|]|%15[^|]|%d|%127[^\n]", d.id, d.username, d.ip, &d.port_tcp, d.message);
+                int index = -1;
+                for (int i = 0; i < nb; i++) {
+                    if (strcmp(liste[i].id, d.id) == 0) {
+                        index = i;
+                        break;
+                    }
+                }
+                if (index != -1) {
+                    liste[index] = d;
+                }
+                else if (nb < 100) {
+                    liste[nb] = d;
+                    nb++;
+                }
+            }
         }
     }
-}
 
 
 int main(void)
