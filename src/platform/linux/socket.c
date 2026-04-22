@@ -50,18 +50,8 @@ int presence(int socket_udp,char *id,char *username,char *ip,int port_tcp,char *
     return 0;
 }
 //-------------------------------------------------------------------------
-typedef struct {
-    char id[37];
-    char username[64];
-    char ip[16];
-    int  port_tcp;
-    char message[128];
-} device;
-int nb=0;
-//hear ecoute les beacon sur le port d'emmision
-device *hear(void)
-{
 
+int hear_socket(){
     //Hello le BOP ici je cree un socket UDP pour la fonction hear()
     int socket_udp;
     socket_udp = socket(AF_INET, SOCK_DGRAM, 0);
@@ -76,7 +66,22 @@ device *hear(void)
         .sin_family= AF_INET,
         .sin_port= htons(BEACON_PORT)
     };
+    return socket_udp;
+}
 
+typedef struct {
+    char id[37];
+    char username[64];
+    char ip[16];
+    int  port_tcp;
+    char message[128];
+} device;
+int nb=0;
+//hear ecoute les beacon sur le port d'emmision
+device *hear(int socket_udp)
+{
+
+    
     //ici j'attache le socket à la structure en haut
     if(bind (socket_udp, (struct sockaddr *) &network_utils, sizeof( network_utils))< 0)
     {
@@ -98,31 +103,8 @@ device *hear(void)
     char buffer[256];
     socklen_t size_of=sizeof(network_utils);
 
-    while (1) {
-        ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&network_utils, &size_of);
+    ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&network_utils, &size_of);
 
-        if(result<0) break;
-        buffer[result]='\0';
-
-        if (strncmp(buffer, "toole", 5) != 0) continue;
-        if (count == capacite) {
-            capacite *= 2;
-            device *tmp = realloc(liste, capacite * sizeof(device));
-            if (tmp == NULL) {
-                perror("hear() -> realloc a echoue");
-                break;
-            }
-            liste = tmp;
-                }
-        device d;
-        sscanf(buffer, "toole|%36[^|]|%63[^|]|%15[^|]|%d|%127[^\n]",d.id, d.username, d.ip, &d.port_tcp, d.message);
-        liste[count] = d;
-        count++;
-        }
-        close(socket_udp);
-        nb = count;
-
-        return liste;
     }
 
 
