@@ -11,12 +11,8 @@
 
 #define BEACON_PORT 47272
 
-// Presence est la focntion qui emet les beacon
-int presence(char *id,char *username,char *ip,int port_tcp,char *message)
+int presence_socket()
 {
-    char beacon[256];
-    snprintf(beacon,sizeof(beacon), "toole|%s|%s|%s|%d|%s",id,username,ip,port_tcp,message);
-
     //Hello le BOP,sur cette section , je creer le socket qui retourne un nombre negatif si echec et  un nombre positif si succès
     int socket_udp;
     socket_udp=socket(AF_INET, SOCK_DGRAM,0);
@@ -34,6 +30,15 @@ int presence(char *id,char *username,char *ip,int port_tcp,char *message)
         perror("setsockopt a echoué");
         return -1;
     }
+    return socket_udp;
+}
+
+// Presence est la focntion qui emet les beacon
+int presence(int socket_udp,char *id,char *username,char *ip,int port_tcp,char *message)
+{
+    char beacon[256];
+    snprintf(beacon,sizeof(beacon), "toole|%s|%s|%s|%d|%s",id,username,ip,port_tcp,message);
+
     //Cette structure definit les adresse et port reseau pour entamer  l'emission de données en UDP
     struct sockaddr_in network_utils={
         .sin_family= AF_INET,
@@ -42,7 +47,6 @@ int presence(char *id,char *username,char *ip,int port_tcp,char *message)
     };
     // Envoie du beacon de presence avec l'ip , le port et le message du TCP
     sendto(socket_udp,beacon,strlen(beacon),0,(struct sockaddr *)&network_utils,sizeof(network_utils));
-    close(socket_udp);
     return 0;
 }
 //-------------------------------------------------------------------------
@@ -80,8 +84,8 @@ device *hear(void)
         close(socket_udp);
         return NULL;
     }
-    
-    
+
+
     int capacite = 4;
     int count = 0;
     device *liste = malloc(capacite * sizeof(device));
@@ -90,16 +94,16 @@ device *hear(void)
         close(socket_udp);
         return NULL;
     }
-    
+
     char buffer[256];
     socklen_t size_of=sizeof(network_utils);
 
     while (1) {
         ssize_t result=recvfrom(socket_udp, buffer, sizeof(buffer)-1, 0,(struct sockaddr *)&network_utils, &size_of);
-        
+
         if(result<0) break;
         buffer[result]='\0';
-        
+
         if (strncmp(buffer, "toole", 5) != 0) continue;
         if (count == capacite) {
             capacite *= 2;
@@ -117,24 +121,18 @@ device *hear(void)
         }
         close(socket_udp);
         nb = count;
-    
+
         return liste;
     }
 
 
 int main(void)
 {
-    device *appareils = hear();
-    
-        for (int i = 0; i < nb; i++) {
-            printf("[%d] %s | %s | port %d | %s\n",
-                   i + 1,
-                   appareils[i].username,
-                   appareils[i].ip,
-                   appareils[i].port_tcp,
-                   appareils[i].message);
-        }
-    
-        free(appareils);
-        return 0;
+    int sock=presence_socket();
+    while (1) {
+    presence(sock, "T-001", "Gerard", "192.168.100.1", 42422,"auto");
+    sleep(5);
+    }
+    close(sock);
+    return 0;
 }
