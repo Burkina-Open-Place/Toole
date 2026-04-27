@@ -35,6 +35,12 @@ typedef struct {
 
 int main(void)
 {
+    /* Initialisation de Winsock */
+    WSADATA Sa;
+    if(WSAStartup(MAKEWORD(2,2),&Sa) != 0){
+        printf("initialisation de la socket a échoué : %d", WSAGetLastError());
+        exit(1);
+    }
     
     char *name_pc = id_generertor();
     //presence("172.16.17.140",PORT,name_pc);
@@ -61,11 +67,6 @@ void cleaner(devices *liste,int *nb){
 
 int head(devices *liste,int *nb){
     char buffer[256];
-    WSADATA head_addr;
-    if(WSAStartup(MAKEWORD(2,2),&head_addr) != 0){
-        printf("initialisation de la socket a échoué : %d", WSAGetLastError());
-        exit(1);
-    }
 
     SOCKET head_sock = socket(AF_INET,SOCK_DGRAM,0);
     if(head_sock == INVALID_SOCKET){
@@ -137,11 +138,7 @@ int presence(char *ip,int port_tcp,char *message,char *username,int id){
 
     char beacan[256];
     snprintf(beacan,sizeof(beacan), "toole|%s|%s|%s|%d|%s",id,username,ip,port_tcp,message);
-    WSADATA Sa;
-    if(WSAStartup(MAKEWORD(2,2),&Sa) != 0){
-        printf("initialisation de la socket a échoué : %d", WSAGetLastError());
-        exit(1);
-    }
+
     SOCKET sock_envoi = socket(AF_INET,SOCK_DGRAM,0);
     if(sock_envoi == INVALID_SOCKET){
         printf("creation de la socket  a échoué : %d", WSAGetLastError());
@@ -203,10 +200,10 @@ char * id_generertor(){
     srand(time(NULL));
     nombre = rand() % 1001;//generation d'un nombre alleatoire pour faire l'id
     sprintf(chaine, "%d", nombre);
-        // 1. Copier computerName dans namepc
+        //  Copier computerName dans namepc
     strcpy(namepc, computerName);                
     
-    // 2. Concaténer chaine à la suite de namepc
+    //  Concaténer chaine à la suite de namepc
     strcat(namepc, chaine);  
     
     return namepc;//je retourne l'id avec ce format {NOMPCNOMBRE} EX:DELL57665555 NB:5555 est le nombre generer et DELL5766 nom de la machine.
