@@ -29,6 +29,8 @@ typedef struct {
     char message[128];
     time_t last_time;
 } devices;
+
+
 /*fonction main:l'entre du code | programe*/
 
 int main(void)
@@ -40,9 +42,9 @@ int main(void)
     return 0;
 }
 //------------------------------------------------------------------------------------------------
+/*Implementation des fonction */
 
-
-void cleaner_(devices *liste,int *nb){
+void cleaner(devices *liste,int *nb){
     time_t now = time(NULL);
     int keepCount = 0;
 
@@ -130,7 +132,7 @@ int head(devices *liste,int *nb){
         }
     
 }
-/*Implementation des fonction */
+
 int presence(char *ip,int port_tcp,char *message,char *username,int id){
 
     char beacan[256];
