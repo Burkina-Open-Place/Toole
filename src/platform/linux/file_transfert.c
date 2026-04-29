@@ -135,13 +135,13 @@ int recv_struct(int socket_tcp,char *filename_out,ssize_t max_len,uint64_t *file
     //
     file_struct one;
     if (read_n(socket_tcp,&one, sizeof(one))<0) return -1;
-    
+
     uint32_t name_len = ntohl(one.name_len);
     *file_size_out = ntohll(one.file_size);
-    
+
     if(name_len == 0 || name_len >= max_len) return -1;
     if(read_n(socket_tcp, filename_out, name_len) < 0) return -1;
-   
+
     filename_out[name_len] = '\0';
     return 0;
 }
@@ -151,7 +151,27 @@ int recv_file(int socket_tcp,const char *destination){
     char filename[256];
     uint64_t file_size;
     if(recv_struct(socket_tcp, filename, sizeof(filename), &file_size) < 0) return -1;
-    
+
+    char path[512];
+    snprintf(path, sizeof(path), "%s/%s", destination, filename);
+
+    int file = open(path, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if(file < 0) return -1;
+    uint8_t buffer[CHUNK_SIZE];
+    uint64_t total = 0;
+    while(total < file_size) {
+        size_t to_read = (file_size - total > CHUNK_SIZE) ? CHUNK_SIZE : (size_t)(file_size - total);
+        if(read_n(socket_tcp, buffer, to_read) < 0) {
+            close(file);
+            return -1;
+        }
+        if(write(file, buffer, to_read) < 0) {
+            close(file);
+            return -1;
+        }
+        total+=to_read;
+    }
+    close(file);
     return 0;
 }
 
