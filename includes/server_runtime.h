@@ -28,7 +28,7 @@ typedef struct {
     device *liste;
     int *nb;
 
-    int beacon_interval_ms;
+    int beacon_interval;
     volatile int *stop_flag;
 } context;
 

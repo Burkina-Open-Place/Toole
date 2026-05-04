@@ -1,5 +1,10 @@
-#include "discovery.h"
+#include <poll.h>
+#include <time.h>
+#include <errno.h>
+#include <unistd.h>
 
+#include "discovery.h"
+#include "server_runtime.h"
 
 //Hello le BOP , ici dans ce fichier ,je creér des fonctions pour gérer le logique
 //concurente  de nos differentes composantes
@@ -20,3 +25,17 @@ typedef void (*hear_fn)(
     device *liste,
     int *nb
 );
+
+// cette fonction prend des repères(timespec) dans le temps et renvoit la dureé ecoulé entre ses deux reperes
+static int duration(struct timespec a, struct timespec b)
+{
+    long sec = b.tv_sec - a.tv_sec;
+    long nsec = b.tv_nsec - a.tv_nsec;
+    if (nsec < 0)
+    {
+        sec--;
+        nsec += 1000000000L;
+    }
+    int d=(sec * 1000 + nsec / 1000000);
+    return d;
+}
