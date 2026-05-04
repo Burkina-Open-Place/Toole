@@ -17,6 +17,14 @@ Dans cette partie , je vais creé des helpers pour evité de repeter la logique 
 ou d'ecriture des fichiers ou meme  eviter d'avoir des fichiers corrompus
 */
 
+//prototype des fonctions
+int send_struct(int socket_tcp, const char *filename, uint64_t file_size);
+int send_file(int socket_tcp, const char *path, const char *new_name);
+int recv_struct(int socket_tcp, char *filename_out, ssize_t max_len, uint64_t *file_size_out);
+int recv_file(int socket_tcp, const char *destination);
+
+
+
 static int write_n(int socket_tcp,const void *buffer,size_t n){
     const uint8_t *p=(const uint8_t *)buffer;
     size_t sent=0;
@@ -172,9 +180,5 @@ int recv_file(int socket_tcp,const char *destination){
         total+=to_read;
     }
     close(file);
-    return 0;
-}
-
-int main(){
     return 0;
 }

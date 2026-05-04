@@ -6,10 +6,20 @@
 #include <time.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <stdlib.h>
 #include <stdio.h>
 
+#include "discovery.h"
+
 #define BEACON_PORT 47272
+
+//Prototype des fonctions
+int presence_socket(void);
+int presence(int socket_udp, char *id, char *username, char *ip, int port_tcp, char *message);
+int hear_socket(void);
+void cleaner(device *liste, int *nb);
+void hear(int socket_udp, device *liste, int *nb);
+
+
 
 int presence_socket()
 {
@@ -77,14 +87,7 @@ int hear_socket(){
     return socket_udp;
 }
 
-typedef struct {
-    char id[37];
-    char username[64];
-    char ip[16];
-    int  port_tcp;
-    char message[128];
-    time_t last_time;
-} device;
+
 
 //Hello le BOP, cette focntion permet de suprimer les appareils s'ils n'envoie de beacon pendant 10 second
 void cleaner(device *liste ,int *nb){
@@ -136,29 +139,3 @@ void hear(int socket_udp,device *liste,int *nb)
             }
         }
     }
-
-
-int main(void)
-{
-    int nb=0;
-    // int sock=presence_socket();
-    // if (sock < 0) return 1;
-    // while (1) {
-    // presence(sock, "T-001", "Gerard", "192.168.100.1", 42422,"auto");
-    // sleep(5);
-    // }
-    // close(sock);
-    int sock = hear_socket();
-        if (sock < 0) return 1;
-    device *devices = malloc(100 *sizeof(device));
-    while (1) {
-        hear(sock, devices,&nb);
-        cleaner(devices,&nb);
-        for (int i = 0; i < nb; i++) {
-                    printf("[%d] %s | %s\n", i+1, devices[i].username, devices[i].ip);
-                }
-    }
-    free(devices);
-    close(sock);
-    return 0;
-}

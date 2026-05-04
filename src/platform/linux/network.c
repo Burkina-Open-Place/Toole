@@ -10,6 +10,15 @@
 #define SERVER_PORT 42422
 #define BACKLOG 16 //represente le nombre de personne qui peuvent attendre avant que le server  ne les accepts
 // Hello la BOP, c'est Gérard, avec cette focntion ,je cree un socket que je vais utilisé tout dans ce fichier network.c
+
+//Prototype des fonctions
+int create_socket(void);
+int init_server(void);
+int accept_client(int socket_tcp);
+int denied_client(int socket_tcp);
+int connect_to(const char *ip, uint16_t port);
+
+
 int create_socket(){
     int socket_tcp;
     socket_tcp=socket(AF_INET, SOCK_STREAM,0);
@@ -99,9 +108,4 @@ int connect_to(const char *ip,uint16_t port){
         }
 
     return socket_tcp;
-}
-
-int main()
-{
-    return 0;
 }
